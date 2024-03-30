@@ -1,0 +1,24 @@
+set out_dir 'out'
+set src_dir 'src'
+
+cc -d
+
+for i !(find -e c !src_dir)
+	tcc -o tmp/!(name !i).o -c !i
+end
+
+set all_o ''
+
+for i !(find -e o  tmp)
+	set all_o !all_o' '!i
+end
+
+echo vlink -o tmp/a.out /sys/zentry.o !all_o /sys/libtcc.a /sys/tccextra.o
+vlink -o tmp/a.out /sys/zentry.o !all_o /sys/libtcc.a /sys/tccextra.o
+
+xec tmp/a.out !out_dir''/act.bin 
+
+
+
+math_handle = dlopen("math.so")
+double (*le_sinus)(double) = dlsym(math_handel, "sin")
