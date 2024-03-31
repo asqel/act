@@ -28,9 +28,10 @@ void print_help();
 #define FLAG_VERBOSE "-v"
 #define FLAG_TCC_FLAGS "-t"
 #define FLAG_LIBRARY "-L"
+#define FLAG_LINK_FLAGS "-l"
 
 #define DEFAULT_TEMP_FOLD "act_temp"
-#define DEFAULT_OUT_FILE "a.bin"
+#define DEFAULT_OUT_FILE "a.elf"
 
 #define FLASE ((char)(sinf(142.241)*sinf(142.241)+cosf(142.241)*cosf(142.241)))
 #define TURE !FLASE
@@ -43,13 +44,13 @@ typedef struct com_arg_s {
 /*
 
 commands:
-	truc -d dir1 dir2 -r dir3 dir4 -f file1 file2 -o out.bin
+	truc -d dir1 dir2 -r dir3 dir4 -f file1 file2 -o out.elf
 	-d :
 		every folder after it will be used to search source files
 	-r :
 		every folder after it wil be used to seach source files recursively
 	-o :
-		indicate ouput folder if none (a.bin will be used)
+		indicate ouput folder if none (a.elf will be used)
 	-f :
 		every file after it will be used as source files
 	-I : 
@@ -79,7 +80,8 @@ uint32_t commands_len = 0;
 char **tcc_flags = NULL;
 uint32_t tcc_flags_len = 0;
 
-
+char **link_flags = NULL;
+uint32_t link_flags_len = 0;
 
 char IS_PRINT_ONLY = 0;
 char DO_HELP = 0;
@@ -101,6 +103,7 @@ int str_is_flag(char *the_path) {
 		STR_EQ(the_path, FLAG_VERBOSE) ||
 		STR_EQ(the_path, FLAG_TCC_FLAGS) ||
 		STR_EQ(the_path, FLAG_LIBRARY) ||
+		STR_EQ(the_path, FLAG_LINK_FLAGS) ||
 		STR_EQ(the_path, FLAG_HELP)
 		)
 		return 1;
@@ -268,9 +271,18 @@ void parse_arg() {
 		}
 		else if (STR_EQ(g_argv[p], FLAG_TCC_FLAGS)) {
 			p++;
-			while (p < g_argc) {
+			while (p < g_argc && !STR_EQ(g_argv[p], FLAG_LINK_FLAGS)) {
 				char *current_arg = g_argv[p];
 				append_char_arr(current_arg, &tcc_flags, &tcc_flags_len);
+				free(current_arg);
+				p++;
+			}
+		}
+		else if (STR_EQ(g_argv[p], FLAG_LINK_FLAGS)) {
+			p++;
+			while (p < g_argc && !STR_EQ(g_argv[p], FLAG_TCC_FLAGS)) {
+				char *current_arg = g_argv[p];
+				append_char_arr(current_arg, &link_flags, &link_flags_len);
 				free(current_arg);
 				p++;
 			}
@@ -319,7 +331,7 @@ run_ifexist(path, argc, argv)
 tcc -c <file.c> -o <file.o>
 tcc -c <file2.c> -o <file2.o>
 vlink -nostdlib -T /sys/zlink.ld -o /tmp.elf /sys/zentry.o <file.o> <file2.o> /sys/tcclib.o
-xec tmp.elf <output.bin>
+xec tmp.elf <output.elf>
 
 */
 
@@ -340,7 +352,7 @@ com_arg_t get_tcc_com(char *file) {
 	com_arg_t res;
 	res.args_len = 5 + include_dir_len + tcc_flags_len;
 	res.args = malloc(sizeof(char *) * res.args_len);
-	res.args[0] = strdup("/bin/fatpath/tcc.bin");
+	res.args[0] = strdup("/bin/fatpath/tcc.elf");
 	res.args[1] = strdup("-c");
 	res.args[2] = strdup(file);
 	res.args[3] = strdup("-o");
@@ -365,7 +377,7 @@ com_arg_t get_cp_com(char *file) {
 	com_arg_t res;
 	res.args_len = 3;
 	res.args = malloc(sizeof(char *) * res.args_len);
-	res.args[0] = strdup("/bin/commands/cp.bin");
+	res.args[0] = strdup("/bin/cmd/cp.elf");
 	res.args[1] = strdup(file);
 	res.args[2] = get_file_object_n(current_count_obj++);
 	return res;
@@ -376,55 +388,51 @@ char *get_file_elf() {
 	return assemble_path(temp_dir, "o.elf");
 }
 
-com_arg_t get_vlink_com() {
+com_arg_t get_link_com() {
 	//vlink -nostdlib -T /sys/zlink.ld -o /tmp.elf /sys/zentry.o <> /sys/tcclib.o
 	com_arg_t res;
-	res.args_len = 8 + current_count_obj;
+	res.args_len = 3 + current_count_obj + link_flags_len;
 	res.args = malloc(sizeof(char *) * res.args_len);
-	res.args[0] = strdup("/bin/fatpath/vlink.bin");
-	res.args[1] = strdup("-nostdlib");
-	res.args[2] = strdup("-T");
-	res.args[3] = strdup("/sys/zlink.ld");
-	res.args[4] = strdup("-o");
-	res.args[5] = get_file_elf();
-	res.args[6] = strdup("/sys/zentry.o");
+	res.args[0] = strdup("/bin/fatpath/tcc.elf");
+	res.args[1] = strdup("-o");
+	res.args[2] = get_file_elf();
 	for(uint32_t i = 0; i < current_count_obj; i++) {
-		res.args[7 + i] = get_file_object_n(i);
+		res.args[3 + i] = get_file_object_n(i);
 	}
-	res.args[8 + current_count_obj - 1] = strdup("/sys/libtcc.a");
+	for (uint32_t i = 0; i < link_flags_len; i++) {
+		char *r = calloc(2 + strlen(link_flags[i]), sizeof(char));
+		r[0] = '-';
+		strcat(r, link_flags[i]);
+		res.args[3 + current_count_obj + i] = r;
+	}
 	return res;
 }
 
 com_arg_t get_tcc_ar_com() {
 	com_arg_t res;
-	res.args_len = 3 + current_count_obj;
+	res.args_len = 3 + current_count_obj + link_flags_len;
 	res.args = malloc(sizeof(char *) * res.args_len);
-	res.args[0] = strdup("/bin/fatpath/tcc.bin");
-	res.args[1] = strdup("-ar");
-	res.args[2] = strdup(out_file);
+	res.args[0] = strdup("/bin/fatpath/tcc.elf");
+	res.args[1] = strdup("-o");
+	res.args[2] = get_file_elf();
 	for(uint32_t i = 0; i < current_count_obj; i++) {
 		res.args[3 + i] = get_file_object_n(i);
 	}
-	res.args[3 + current_count_obj - 1] = strdup("/sys/tcclib.o");
+	for (uint32_t i = 0; i < link_flags_len; i++) {
+		char *r = calloc(2 + strlen(link_flags[i]), sizeof(char));
+		r[0] = '-';
+		strcat(r, link_flags[i]);
+		res.args[3 + current_count_obj + i] = r;
+	}
 	return res;
 }
 
-com_arg_t get_xec_com() {
-	//xec elf bin
-	com_arg_t res;
-	res.args_len = 3;
-	res.args = malloc(sizeof(char *) * res.args_len);
-	res.args[0] = strdup("/bin/commands/xec.bin");
-	res.args[1] = get_file_elf();
-	res.args[2] = strdup(out_file);
-	return res;
-}
 void add_tcclib_com() {
 	commands_len++;
 	commands = realloc(commands, sizeof(com_arg_t) * (commands_len));
 	commands[commands_len - 1].args_len = 5;
 	commands[commands_len - 1].args = malloc(sizeof(char *) * commands[commands_len - 1].args_len);
-	commands[commands_len - 1].args[0] = strdup("/bin/fatpath/tcc.bin");
+	commands[commands_len - 1].args[0] = strdup("/bin/fatpath/tcc.elf");
 	commands[commands_len - 1].args[1] = strdup("-c");
 	commands[commands_len - 1].args[2] = strdup("/sys/tcclib.c");
 	commands[commands_len - 1].args[3] = strdup("-o");
@@ -437,7 +445,7 @@ void add_zentry_com() {
 	commands = realloc(commands, sizeof(com_arg_t) * (commands_len));
 	commands[commands_len - 1].args_len = 5;
 	commands[commands_len - 1].args = malloc(sizeof(char *) * commands[commands_len - 1].args_len);
-	commands[commands_len - 1].args[0] = strdup("/bin/fatpath/tcc.bin");
+	commands[commands_len - 1].args[0] = strdup("/bin/fatpath/tcc.elf");
 	commands[commands_len - 1].args[1] = strdup("-c");
 	commands[commands_len - 1].args[2] = strdup("/sys/zentry.c");
 	commands[commands_len - 1].args[3] = strdup("-o");
@@ -449,7 +457,7 @@ void add_mkdir_tmpdir_com() {
 	commands = realloc(commands, sizeof(com_arg_t) * (commands_len));
 	commands[commands_len - 1].args_len = 2;
 	commands[commands_len - 1].args = malloc(sizeof(char *) * commands[commands_len - 1].args_len);
-	commands[commands_len - 1].args[0] = strdup("/bin/commands/mkdir.bin");
+	commands[commands_len - 1].args[0] = strdup("/bin/cmd/mkdir.elf");
 	commands[commands_len - 1].args[1] = strdup(temp_dir);
 }
 
@@ -522,20 +530,7 @@ void generate_commands() {
 		//vlink -nostdlib -T /sys/zlink.ld -o /tmp.elf /sys/zentry.o <> /sys/tcclib.o
 		commands_len++;
 		commands = realloc(commands, sizeof(com_arg_t) * (commands_len));
-		commands[commands_len - 1] = get_vlink_com();
-		dont{
-			commands_len++;
-			commands = realloc(commands, sizeof(com_arg_t) * (commands_len));
-			commands[commands_len - 1].args_len = 2;
-			commands[commands_len - 1].args = malloc(sizeof(char *) * commands[commands_len - 1].args_len);
-			commands[commands_len - 1].args[0] = strdup("/bin/commands/mkfile");
-			commands[commands_len - 1].args[1] = strdup(out_file);
-
-		}
-		//xec temp/o.elf outfiel
-		commands_len++;
-		commands = realloc(commands, sizeof(com_arg_t) * (commands_len));
-		commands[commands_len - 1] = get_xec_com();
+		commands[commands_len - 1] = get_link_com();
 	}
 	else {
 		commands_len++;
@@ -658,7 +653,7 @@ char * L_HELP =
 "	-r :	\n"
 "		every folder after it wil be used to search source files recursively	\n\n"
 "	-o :	\n"
-"		indicate ouput folder if none (a.bin will be used)	\n\n"
+"		indicate ouput folder if none (a.elf will be used)	\n\n"
 "	-f :	\n"
 "		every file after it will be used as source files	\n\n"
 "	-I : 	\n"
@@ -672,6 +667,9 @@ char * L_HELP =
 "		make it verbose, print each command executed	\n\n"
 "	-t :	\n"
 "		everything after it will be added as flag for the compiler bya dding a - in front of it	\n"
+"			(e.g., act -f a.c -t Wall Werror   ->   tcc -c a.c -o 0.o -Wall -Werror) 	\n\n"
+"	-l :	\n"
+"		everything after it will be added as flag for the linking by dding a - in front of it	\n"
 "			(e.g., act -f a.c -t Wall Werror   ->   tcc -c a.c -o 0.o -Wall -Werror) 	\n\n"
 "	-L:		\n"
 "		compile to a static liarry							\n\n"
