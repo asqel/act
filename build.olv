@@ -1,3 +1,8 @@
+
+
+print 'do you want to install act in /bin/cmd/ (Y / N)' 
+set wish
+
 set out_dir 'out'
 set src_dir 'src'
 
@@ -11,4 +16,18 @@ for i !(find -e o  tmp)
 	set all_o !all_o' '!i
 end
 
-tcc -o tmp/a.out !all_o  -lm
+tcc -o !out_dir''/a.out !all_o  -lm
+
+set yeses 'yes y yeah'
+
+set is_setup 0
+for i !yeses
+	if !(eval !(rep !i 'yeah' 'YEAH') = !(rep !wish 'azertyuiopqsdfghjklmwxcvbn' 'AZERTYUIOPQSDFGHJKLMWXCVBN'))
+		set is_setup 1
+	end
+end
+
+if !(eval !is_setup = 1)
+	rm /bin/cmd/act.elf > /dev/null
+	cp !out_dir''/a.out /bin/cmd/act.elf
+end
