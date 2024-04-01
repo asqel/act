@@ -1,6 +1,6 @@
+#!/bin/fatpath/olivine.elf
 
-
-print 'do you want to install act in /bin/cmd/ (Y / N)' 
+echo -e -n '\e[33mdo you want to install act in \e[35m/bin/cmd/ \e[33m(\e[32mY\e[33m / \e[31mN\e[33m)\e[0m ' 
 set wish
 
 set out_dir 'out'
@@ -30,4 +30,5 @@ end
 if !(eval !is_setup = 1)
 	rm /bin/cmd/act.elf > /dev/null
 	cp !out_dir''/a.out /bin/cmd/act.elf
+	echo -n -e 'please do \e[34mdebug -r \e[0m\n' 
 end
