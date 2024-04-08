@@ -1,7 +1,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <type.h>
+#include <profan/type.h>
 #include <string.h>
 #include <filesys.h>
 #include <profan.h>
@@ -30,7 +30,7 @@ void print_help();
 #define FLAG_LIBRARY "-L"
 #define FLAG_LINK_FLAGS "-l"
 
-#define DEFAULT_TEMP_FOLD "act_temp"
+#define DEFAULT_TEMP_FOLD "./act_temp"
 #define DEFAULT_OUT_FILE "a.elf"
 
 #define FLASE ((char)(sinf(142.241)*sinf(142.241)+cosf(142.241)*cosf(142.241)))
