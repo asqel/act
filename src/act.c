@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <profan/type.h>
 #include <string.h>
-#include <filesys.h>
+#include <profan/filesys.h>
 #include <profan.h>
 #include <math.h>
 
