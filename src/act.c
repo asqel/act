@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <profan/type.h>
 #include <string.h>
-#include <filesys.h>
+#include <profan/filesys.h>
 #include <profan.h>
 #include <math.h>
 
@@ -463,51 +463,17 @@ void add_mkdir_tmpdir_com() {
 
 void generate_commands() {
 	get_all_files();
-	//compile tcclib.c et zentry.c
-	dont{
-		if (IS_NULL_SID(fu_path_to_sid(ROOT_SID, "/sys/tcclib.c"))) {
-			printf("please create /sys/tcclib.c\n");
-			return ;
-		}
-		if (fu_is_dir(fu_path_to_sid(ROOT_SID, "/sys/tcclib.c"))) {
-			printf("/sys/tcclib.c must be a file\n");
-			return ;
-		}
-		if (!IS_NULL_SID(fu_path_to_sid(ROOT_SID, "/sys/tcclib.o"))) {
-			if (fu_is_dir(fu_path_to_sid(ROOT_SID, "/sys/tcclib.o"))) {
-				printf("/sys/tcclib.o must be a file\n");
-				return ;
-			}
-		}
-		if (IS_NULL_SID(fu_path_to_sid(ROOT_SID, "/sys/tcclib.o")))
-			add_tcclib_com();
-
-		if (IS_NULL_SID(fu_path_to_sid(ROOT_SID, "/sys/zentry.c"))) {
-			printf("please create /sys/zentry.c\n");
-			return ;
-		}
-		if (fu_is_dir(fu_path_to_sid(ROOT_SID, "/sys/zentry.c"))) {
-			printf("/sys/zentry.c must be a file\n");
-			return ;
-		}
-		if (!IS_NULL_SID(fu_path_to_sid(ROOT_SID, "/sys/zentry.o"))) {
-			if (fu_is_dir(fu_path_to_sid(ROOT_SID, "/sys/zentry.o"))) {
-				printf("/sys/zentry.o must be a file\n");
-				return ;
-			}
-		}
-		if (IS_NULL_SID(fu_path_to_sid(ROOT_SID, "/sys/zentry.o")))
-			add_zentry_com();
-	}
-
 	{
-		if (!fu_is_dir(fu_path_to_sid(ROOT_SID, temp_dir))) {
-			if (!IS_NULL_SID(fu_path_to_sid(ROOT_SID, temp_dir))) {
+		char *full = assemble_path(getenv("PWD"), temp_dir);
+		if (!fu_is_dir(fu_path_to_sid(ROOT_SID, full))) {
+			if (!IS_NULL_SID(fu_path_to_sid(ROOT_SID, full))) {
 				printf("temp dir %s is not a folder\n", temp_dir);
+				free(full);
 				return ;
 			}
 			add_mkdir_tmpdir_com();
 		}
+		free(full);
 	}
 	// make tcc commands
 	if (files_to_compile_len){
@@ -596,17 +562,15 @@ int main(int argc, char **argv) {
 		printf("TEMP_FOLDER : %s \n", temp_dir);
 		printf("HELP : %d\n", DO_HELP);
 	}
-	if (DO_HELP) {
+	if (DO_HELP)
 		print_help();
-	}
 	else {
 		generate_commands();
 
 		if (IS_PRINT_ONLY) {
 			for(uint32_t i = 0; i < commands_len;i++) {
-				for(int k = 0; k < commands[i].args_len; k++) {
+				for(int k = 0; k < commands[i].args_len; k++)
 					printf("%s ", commands[i].args[k]);
-				}
 				printf("\n");
 			}
 		}
@@ -746,117 +710,117 @@ $var will be replace by its value with quotes
 #my_def	will be replaced by all its tokens
 */
 
-typedef struct {
-	char *names;
-	char *value;
-} var_t;
-
-//var_t *VARS = NULL;
-//uint32_t Vars_len = 0;
-
-var_t *DEFINES = NULL;
-uint32_t DEFINES_len = 0;
-
-var_t *SECTIONS = NULL;
-uint32_t SECTIONS_LEN = 0;
-
-int act_is_space(char c) {
-	switch (c) {
-		case ' ':
-		case '\t':
-		case '\r':
-		case '\v':
-		case '\0':
-		case '\f':
-		default :
-			return 0;
-	}
-}
-
-int act_id_accpetable(char c) {
-	if ('a' <= c && c <= 'b')
-		return 1;
-	if ('0' <= c && c <= '9')
-		return 1;
-	if ('A' <= c && c <= 'B')
-		return 1;	
-	if (c == '_')
-		return 1;
-	if (c == '-')
-		return 1;
-	if (c == '.')
-		return 1;
-	if (c == '+')
-		return 1;
-	return 0;
-
-}
-
-void search_round_brack(char *t, int start, int *l_pos, int *r_pos) {
-	while(act_is_space(t[start]) || t[start] == '\n')
-		start++;
-	if (t[start] != '{') {
-		return ;
-	}
-	*l_pos = start;
-	while(t[start] != '}' && t[start - 1] != '\\') {
-		start++;
-	}  
-	if (t[start] != '}')
-		return ;
-	if (t[start - 1] == '\\')
-		return ;
-	*r_pos = start;
-}
-
-int act_conf_line = 0;
-
-void execute_config(char *text, int len) {
-	int p = 0;
-	while(text[p] != '\0') {
-		if (text[p] == '\n') {
-			p++;
-			continue;
-		}
-		if (act_is_space(text[p])) {
-			p++;
-			while (act_is_space(text[p]))
-				p++;
-			continue;
-		}
-		
-		//if (text[p] == '#') {
-		//	//make defines
-		//	if (strncmp(&(text[p + 1]), "define", strlen("define"))) {
-		//		p += 7;
-		//		int start = p;
-		//		while(act_is_space(text[start]))
-		//			start++;
-		//		if (text[start] == '\n') {
-		//			printf("error")
-		//		}
-		//		while (1) {
-
-		//		}
-		//	}
-		//	printf("ERROR act keyword not recognized on line %d\n", act_conf_line);
-		//}
-		if (act_id_accpetable(text[p]) && !(0 <= text[p] && text[p] <= 9)) {
-			int start = p;
-			int end = start + 1;
-			while (act_id_accpetable(text[end]))
-				end++;
-			int brack_l = -1;
-			int brack_r = -1;
-			search_round_brack(text, end, &brack_l, &brack_r);
-			if (brack_l == -1 || brack_r == -1) {
-				printf("ERROR act config cannot find round brackets on line %d\n", act_conf_line);
-				exit(1);
-			}
-			char *sec_cont = malloc(sizeof(char) * (brack_r - brack_l + 1 - 2 + 1));
-			//memcpy(sec_cont, &(text[brack_l + 1]));
-		}
-		
-	} 
-	
-}
+//typedef struct {
+//	char *names;
+//	char *value;
+//} var_t;
+//
+////var_t *VARS = NULL;
+////uint32_t Vars_len = 0;
+//
+//var_t *DEFINES = NULL;
+//uint32_t DEFINES_len = 0;
+//
+//var_t *SECTIONS = NULL;
+//uint32_t SECTIONS_LEN = 0;
+//
+//int act_is_space(char c) {
+//	switch (c) {
+//		case ' ':
+//		case '\t':
+//		case '\r':
+//		case '\v':
+//		case '\0':
+//		case '\f':
+//		default :
+//			return 0;
+//	}
+//}
+//
+//int act_id_accpetable(char c) {
+//	if ('a' <= c && c <= 'b')
+//		return 1;
+//	if ('0' <= c && c <= '9')
+//		return 1;
+//	if ('A' <= c && c <= 'B')
+//		return 1;	
+//	if (c == '_')
+//		return 1;
+//	if (c == '-')
+//		return 1;
+//	if (c == '.')
+//		return 1;
+//	if (c == '+')
+//		return 1;
+//	return 0;
+//
+//}
+//
+//void search_round_brack(char *t, int start, int *l_pos, int *r_pos) {
+//	while(act_is_space(t[start]) || t[start] == '\n')
+//		start++;
+//	if (t[start] != '{') {
+//		return ;
+//	}
+//	*l_pos = start;
+//	while(t[start] != '}' && t[start - 1] != '\\') {
+//		start++;
+//	}  
+//	if (t[start] != '}')
+//		return ;
+//	if (t[start - 1] == '\\')
+//		return ;
+//	*r_pos = start;
+//}
+//
+//int act_conf_line = 0;
+//
+//void execute_config(char *text, int len) {
+//	int p = 0;
+//	while(text[p] != '\0') {
+//		if (text[p] == '\n') {
+//			p++;
+//			continue;
+//		}
+//		if (act_is_space(text[p])) {
+//			p++;
+//			while (act_is_space(text[p]))
+//				p++;
+//			continue;
+//		}
+//		
+//		//if (text[p] == '#') {
+//		//	//make defines
+//		//	if (strncmp(&(text[p + 1]), "define", strlen("define"))) {
+//		//		p += 7;
+//		//		int start = p;
+//		//		while(act_is_space(text[start]))
+//		//			start++;
+//		//		if (text[start] == '\n') {
+//		//			printf("error")
+//		//		}
+//		//		while (1) {
+//
+//		//		}
+//		//	}
+//		//	printf("ERROR act keyword not recognized on line %d\n", act_conf_line);
+//		//}
+//		if (act_id_accpetable(text[p]) && !(0 <= text[p] && text[p] <= 9)) {
+//			int start = p;
+//			int end = start + 1;
+//			while (act_id_accpetable(text[end]))
+//				end++;
+//			int brack_l = -1;
+//			int brack_r = -1;
+//			search_round_brack(text, end, &brack_l, &brack_r);
+//			if (brack_l == -1 || brack_r == -1) {
+//				printf("ERROR act config cannot find round brackets on line %d\n", act_conf_line);
+//				exit(1);
+//			}
+//			char *sec_cont = malloc(sizeof(char) * (brack_r - brack_l + 1 - 2 + 1));
+//			//memcpy(sec_cont, &(text[brack_l + 1]));
+//		}
+//		
+//	} 
+//	
+//}

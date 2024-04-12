@@ -5,6 +5,8 @@ set wish
 
 set out_dir 'out'
 set src_dir 'src'
+mkdir tmp
+mkdir out
 
 for i !(find -e c !src_dir)
 	tcc -o tmp/!(name !i).o -c !i
@@ -28,7 +30,6 @@ for i !yeses
 end
 
 if !(eval !is_setup = 1)
-	rm /bin/cmd/act.elf > /dev/null
 	cp !out_dir''/a.out /bin/cmd/act.elf
 	debug -r
 end
