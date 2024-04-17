@@ -53,6 +53,7 @@ char **str_split_lines(char *input) {
     char* line = strtok(input, "\n");
     int i = 0;
     while (line != NULL) {
+		//printf("@@@line %d\n%s\n###",i , line);
 		lines = realloc(lines, sizeof(char *) * (i + 1));
         lines[i++] = strdup(line);
         line = strtok(NULL, "\n");
@@ -76,7 +77,7 @@ char is_space(char c) {
 	}
 }
 
-char *trim_lines(char **lines) {
+char **trim_lines(char **lines) {
 	char **res = NULL;
 	int end = 0;
 	int p = 0;
@@ -84,12 +85,23 @@ char *trim_lines(char **lines) {
 		int current_end = strlen(lines[p]);
 		while (is_space(lines[p][current_end - 1]))
 			current_end--;
-		if (!current_end) {
+		if (current_end <= 1) {
 			p++;
 			continue;
 		}
-		
+		res = realloc(res, sizeof(char *) * (end + 1));
+		res[end] = calloc(current_end, sizeof(char));
+		strncpy(res[end], lines[p], current_end);
+		end++;
+		p++;
 	}
+	p = 0;
+	while (lines[p] != NULL)
+		free(lines[p++]);
+	free(lines);
+	res = realloc(res, sizeof(char *) * (end + 1));
+	res[end] = NULL;
+	return res;
 }
 
 char *conf_path = NULL;
@@ -103,7 +115,6 @@ int act_config() {
 		exit(1);
 	}
 	char *conf_text = read_file(conf_path);
-	printf("%s\n", conf_text);
 	parse_config_section(conf_text);
 	free(conf_text);
 	return 0;
@@ -113,7 +124,9 @@ int act_config() {
 void parse_config_section(char *text) {
 	char **lines = str_split_lines(text);
 	lines = trim_lines(lines);
-	for(int i = 0; lines[i] != NULL; i++)
-		printf("%d : %d |\n", i, strlen(lines[i]));
+	for(int i = 0; lines[i] != NULL; i++) {
+		printf("%d : %s |\n", i, lines[i]);
+	}
+
 
 }

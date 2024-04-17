@@ -387,7 +387,17 @@ com_arg_t get_cp_com(char *file) {
 
 char *get_file_elf() {
 	// temp/o.elf
-	return assemble_path(temp_dir, "o.elf");
+	if (files_to_compile_len == 1 && !STR_EQ(out_file, DEFAULT_OUT_FILE)) {
+		int len = strlen(files_to_compile[0]);
+		char *file = strdup(files_to_compile[0]);
+		file[len - 1] = '\0';
+
+		char *res = malloc(sizeof(char) * (1 + len - 1 + 3));
+		sprintf(res, "%self", file);
+		free(file);
+		return res;
+	}
+	return strdup(out_file);
 }
 
 com_arg_t get_link_com() {
