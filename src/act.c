@@ -1,12 +1,14 @@
-
+// @LINK SHARED: libpm
 #include <stdlib.h>
 #include <stdio.h>
 #include <profan/type.h>
 #include <string.h>
 #include <profan/filesys.h>
 #include <profan.h>
-#include <math.h>
+#include <profan/math.h>
 
+#include "../include/act.h"
+#include "../include/config.h"
 int g_argc;
 char **g_argv;
 void print_help();
@@ -544,6 +546,8 @@ int main(int argc, char **argv) {
 	//	do_config();
 	//	return 0;
 	//}
+	if (check_is_config())
+		return act_config();
 	
 	parse_arg();
 	dont{

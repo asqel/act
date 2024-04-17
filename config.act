@@ -1,0 +1,14 @@
+
+
+a = 3
+b = 4
+
+sec1:
+	cat *
+	ls
+le caca
+sec2:
+	x = 3
+
+
+
