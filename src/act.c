@@ -425,7 +425,7 @@ com_arg_t get_tcc_ar_com() {
 	res.args_len = 3 + current_count_obj + link_flags_len;
 	res.args = malloc(sizeof(char *) * res.args_len);
 	res.args[0] = strdup("/bin/fatpath/tcc.elf");
-	res.args[1] = strdup("-o");
+	res.args[1] = strdup("-ar");
 	res.args[2] = get_file_elf();
 	for(uint32_t i = 0; i < current_count_obj; i++) {
 		res.args[3 + i] = get_file_object_n(i);
