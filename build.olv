@@ -8,13 +8,13 @@ set src_dir 'src'
 mkdir tmp
 mkdir out
 
-for i !(find -e c !src_dir)
+for i !(search -r -e c !src_dir)
 	tcc -o tmp/!(name !i).o -c !i
 end
 
 set all_o ''
 
-for i !(find -e o  tmp)
+for i !(search -r -e o  tmp)
 	set all_o !all_o' '!i
 end
 
@@ -24,7 +24,7 @@ set yeses 'yes y yeah'
 
 set is_setup 0
 for i !yeses
-	if !(eval !(rep !i 'yeah' 'YEAH') = !(rep !wish 'azertyuiopqsdfghjklmwxcvbn' 'AZERTYUIOPQSDFGHJKLMWXCVBN'))
+	if !(eval "!(print !i | upper |)" = "!(print !wish | upper |)")
 		set is_setup 1
 	end
 end

@@ -77,30 +77,32 @@ char is_space(char c) {
 	}
 }
 
+char *trim_space(char *str) {
+	int end = strlen(str) - 1;
+	while (end >= 0 && is_space(str[end]))
+		str[end--] = '\0';
+	if (end < 0) {
+		free(str);
+		return NULL;
+	}
+	return realloc(str, sizeof(char) * (end + 2));
+}
+
 char **trim_lines(char **lines) {
 	char **res = NULL;
-	int end = 0;
-	int p = 0;
-	while (lines[p] != NULL) {
-		int current_end = strlen(lines[p]);
-		while (is_space(lines[p][current_end - 1]))
-			current_end--;
-		if (current_end <= 1) {
-			p++;
-			continue;
+	int res_len = 0;
+	while (*lines){
+		char *new_line = trim_space(*lines);
+		lines++;
+		if (new_line != NULL) {
+			res_len++;
+			res = realloc(res, sizeof(char *) * res_len);
+			res[res_len - 1] = new_line;
 		}
-		res = realloc(res, sizeof(char *) * (end + 1));
-		res[end] = calloc(current_end, sizeof(char));
-		strncpy(res[end], lines[p], current_end);
-		end++;
-		p++;
 	}
-	p = 0;
-	while (lines[p] != NULL)
-		free(lines[p++]);
-	free(lines);
-	res = realloc(res, sizeof(char *) * (end + 1));
-	res[end] = NULL;
+	res_len++;
+	res = realloc(res, sizeof(char *) * res_len);
+	res[res_len - 1] = NULL;
 	return res;
 }
 
@@ -125,7 +127,7 @@ void parse_config_section(char *text) {
 	char **lines = str_split_lines(text);
 	lines = trim_lines(lines);
 	for(int i = 0; lines[i] != NULL; i++) {
-		printf("%d : %s |\n", i, lines[i]);
+		printf("line %d:%s|\n", i, lines[i]);
 	}
 
 
